@@ -1,0 +1,28 @@
+[
+  {
+    "buckets_id": 1,
+    "buckets_kind": null,
+    "buckets_name": "BBVA Checking",
+    "afterbanks_id": 101555,
+    "afterbanks_isactive": 1,
+    "afterbanks_type": "checking",
+    "afterbanks_currency": "EUR",
+    "afterbanks_balance": 2444.4,
+    "afterbanks_product": "0075-4726-89-7218644785",
+    "afterbanks_description": "En cuenta corriente",
+    "lastupdate_local": 1582930800
+  },
+  {
+    "buckets_id": 2,
+    "buckets_kind": null,
+    "buckets_name": "BNP Paribas Savings",
+    "afterbanks_id": 101565,
+    "afterbanks_isactive": 1,
+    "afterbanks_type": "saving",
+    "afterbanks_currency": "EUR",
+    "afterbanks_balance": 0,
+    "afterbanks_product": "FR28 1756 9000 5078 4829 7665 R77",
+    "afterbanks_description": "Savings EUR",
+    "lastupdate_local": 1582930800
+  }
+]

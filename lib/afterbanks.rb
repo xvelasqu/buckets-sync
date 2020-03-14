@@ -6,7 +6,7 @@ module Afterbanks
   require 'httparty'
 
   # Methods to fetch data from Afterbanks API
-  class AfterbanksFetcher
+  class Fetcher
     def initialize(api_key)
       @api_key = api_key
     end
@@ -48,8 +48,8 @@ module Afterbanks
     end
 
     # @return [String] pretty json with all products
-    def dummy_fetch_accounts
-      response = File.read('test_response.json') # Dummy test
+    def dummy_fetch_accounts_json
+      response = File.read('test_response_accounts.json') # Dummy test
       banks_array = JSON.parse(response, symbolize_names: true) # Dummy test
       products = []
       banks_array.each do |bank|
@@ -60,6 +60,58 @@ module Afterbanks
         end
       end
       JSON.pretty_generate(products)
+    end
+
+    # @param [Array<String>] selected_accounts
+    # @param [DateTime] from_datetime
+    # @param [DateTime] to_datetime
+    # @return [Array<Hash>]
+    def fetch_transactions_array(selected_accounts, from_datetime, to_datetime)
+      result_json = []
+      page_count = 1
+      loop do
+        fetch_transactions_page(page_number, selected_accounts,
+                                from_datetime, to_datetime)
+        page_count += 1
+        break if JSON.parse(response) == []
+
+        result_json += JSON.parse(response, symbolize_names: true)
+      end
+      result_json
+    end
+
+    def fetch_transactions_json(selected_accounts, from_datetime, to_datetime)
+      JSON.pretty_generate(
+        fetch_transactions_array(selected_accounts, from_datetime, to_datetime)
+      )
+    end
+
+    # @param [Array<Hash>]
+    def dummy_fetch_transactions_array
+      response = File.read('test_response_transactions.json') # Dummy test
+      JSON.parse(response, symbolize_names: true) # Dummy
+    end
+
+    private
+
+    # @return [HTTParty::Response]
+    def fetch_transactions_page(page_number, selected_accounts,
+                                from_datetime, to_datetime)
+      HTTParty.post(
+        'https://www.afterbanks.com/apiapp/getTransactions',
+        {
+          headers: {
+            'Accept' => 'application/json', 'O-Auth-Token' => @api_key
+          },
+          query: {
+            'page' => page_number,
+            'advSelectedAccounts' => selected_accounts.join(','),
+            'advDateFrom' => from_datetime.strftime('%Y-%m-%d'),
+            'advDateTo' => to_datetime.strftime('%Y-%m-%d')
+          }, 
+          format: 'json'
+        }
+      )
     end
   end
 
@@ -145,6 +197,11 @@ class Budget
     @db.execute2(query)
   end
 
+  # @param [DateTime] datetime
+  # @param [Integer] account_id
+  # @param [Float] amount
+  # @param [string] memo
+  # @param [string] ext_id
   def insert_account_transaction(
     datetime,
     account_id,
@@ -154,7 +211,7 @@ class Budget
   )
     query = 'INSERT INTO `account_transaction`(`id`,`posted`,`account_id`,'\
       "`amount`,`memo`,`fi_id`) VALUES (NULL,'#{format_datetime(datetime)}',"\
-      "'#{account_id}','#{amount}',#{memo ? "'#{memo}'" : 'NULL'},"\
+      "'#{account_id}','#{(amount * 100).to_i}',#{memo ? "'#{memo}'" : 'NULL'},"\
       "#{ext_id ? "'#{ext_id}'" : 'NULL'});"
     puts query
     execute(query)

@@ -70,8 +70,8 @@ module Afterbanks
       result_json = []
       page_count = 1
       loop do
-        fetch_transactions_page(page_number, selected_accounts,
-                                from_datetime, to_datetime)
+        response = fetch_transactions_page(page_count, selected_accounts,
+                                           from_datetime, to_datetime)
         page_count += 1
         break if JSON.parse(response) == []
 
@@ -126,6 +126,16 @@ module Afterbanks
       @account_hash = account_hash
     end
 
+    # @return [DateTime] last_updated timestamp as DateTime
+    def last_updated
+      Time.at(@account_hash[:lastupdate_local]).to_datetime
+    end
+
+    # @return [Symbol]
+    def afterbanks_id
+      @account_hash[:afterbanks_id]
+    end
+
     # Modify the 'last updated' timestamp of this account
     #
     # @param [DateTime] datetime
@@ -151,32 +161,44 @@ module Afterbanks
       JSON.parse(json, { symbolize_names: symbolize_names })
     end
 
-    # @param [Boolean] symbolize_names?
-    # @return [Hash] account json parsed as hash
-    def account_hash(afterbanks_id)
+    # @param [Symbol] id_type (options: :afterbanks, :buckets)
+    # @param [Integer] afterbanks_id
+    # @return [Hash] account json parsed as hash. unless wrong params, then nil
+    def account_hash(id_type, id)
+      case id_type
+      when :afterbanks
+        id_type = :afterbanks_id
+      when :buckets
+        id_type = :buckets_id
+      else
+        return nil
+      end
       accounts_array = all_accounts_array(true)
       accounts_array.each do |account_hash|
-        return account_hash if account_hash[:afterbanks_id] == afterbanks_id
+        return account_hash if account_hash[id_type] == id
       end
       {}
     end
 
-    # @param [Integer] afterbanks_id
-    # @return [SyncedAfterbanksAccount]
-    def account(afterbanks_id)
-      account_hash = account_hash(afterbanks_id)
-      SyncedAccount.new(afterbanks_id, account_hash)
+    # @param [Symbol] id_type (options: :afterbanks, :buckets)
+    # @param [Integer] id
+    # @return [SyncedAfterbanksAccount] unless wrong parameters, then nil
+    def account(id_type, id)
+      account_hash = account_hash(id_type, id)
+      return nil if account_hash.nil?
+
+      SyncedAccount.new(id, account_hash)
     end
 
     # @param [SyncedAfterbanksAccount] account
     def overwrite_account(account)
       accounts_array = all_accounts_array(true)
-      accounts_array.each do |key, account_hash|
-        if account_hash[:afterbanks_id] == account[:afterbanks_id]
-          accounts_array[key] = account
+      accounts_array.each_with_index do |account_hash, index|
+        if account_hash[:afterbanks_id] == account.afterbanks_id
+          accounts_array[index] = account.account_hash
         end
       end
-      File.write(@path, accounts_array)
+      File.write(@path, JSON.pretty_generate(accounts_array))
     end
   end
 end
@@ -197,6 +219,19 @@ class Budget
     @db.execute2(query)
   end
 
+  # @param [Array<Hash>] transactions_array
+  def insert_account_transactions_array(transactions_array)
+    transactions_array.each do |transaction|
+      insert_account_transaction(
+        DateTime.strptime("#{transaction[:date]} 00:00", '%Y-%m-%d %H:%M'),
+        account.account_hash[:buckets, buckets_id],
+        transaction[:amount],
+        transaction[:description],
+        transaction[:md5]
+      )
+    end
+  end
+
   # @param [DateTime] datetime
   # @param [Integer] account_id
   # @param [Float] amount
@@ -213,8 +248,24 @@ class Budget
       "`amount`,`memo`,`fi_id`) VALUES (NULL,'#{format_datetime(datetime)}',"\
       "'#{account_id}','#{(amount * 100).to_i}',#{memo ? "'#{memo}'" : 'NULL'},"\
       "#{ext_id ? "'#{ext_id}'" : 'NULL'});"
-    puts query
     execute(query)
+  end
+
+  # @param [Afterbanks::SyncedAccountRepository] af_repo
+  # @param [Integer] buckets_id
+  def update_afterbanks_account(af_repo, buckets_id)
+    account = af_repo.account(:buckets, buckets_id)
+    af = Afterbanks::Fetcher.new(ENV['AFTERBANKS_API_KEY'])
+    now = DateTime.now
+    insert_account_transactions_array(
+      af.fetch_transactions_array(
+        [account.afterbanks_id],
+        account.last_updated,
+        now
+      )
+    )
+    account.touch(now)
+    af_repo.overwrite_account(account)
   end
 
   private

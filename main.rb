@@ -20,23 +20,12 @@ Dir[File.join('.', 'lib/**/*.rb')]
 Dotenv.load
 
 budget = Budget.new('db/test.buckets')
-account = Afterbanks::SyncedAccountRepository
-          .new('db/accounts.json')
-          .account('105513'.to_i)
-af = Afterbanks::Fetcher.new(ENV['AFTERBANKS_API_KEY'])
-af.fetch_transactions_array(
-  ['105513'],
-  DateTime.strptime('2020-01-01 00:00', '%Y-%m-%d %H:%M'),
-  DateTime.strptime('2020-04-01 00:00', '%Y-%m-%d %H:%M')
-).each do |transaction|
-  budget.insert_account_transaction(
-    DateTime.strptime("#{transaction[:date]} 00:00", '%Y-%m-%d %H:%M'),
-    account.account_hash[:buckets_id],
-    transaction[:amount],
-    transaction[:description],
-    transaction[:md5]
-  )
-end
+af_repo = Afterbanks::SyncedAccountRepository.new('db/accounts.json')
+budget.update_afterbanks_account(af_repo, 2)
+
+# af_repo.all_accounts_array.each do |account|
+#   budget.update_account[af_repo, account[:buckets_id]]
+# end
 
 # p af.fetch_transactions_json(
 #   ['105513'],

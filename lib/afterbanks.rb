@@ -131,9 +131,14 @@ module Afterbanks
       Time.at(@account_hash[:lastupdate_local]).to_datetime
     end
 
-    # @return [Symbol]
+    # @return [Integer]
     def afterbanks_id
       @account_hash[:afterbanks_id]
+    end
+
+    # @return [Integer]
+    def buckets_id
+      @account_hash[:buckets_id]
     end
 
     # Modify the 'last updated' timestamp of this account
@@ -219,12 +224,13 @@ class Budget
     @db.execute2(query)
   end
 
+  # @param [Integer] account_id
   # @param [Array<Hash>] transactions_array
-  def insert_account_transactions_array(transactions_array)
+  def insert_account_transactions_array(account_id, transactions_array)
     transactions_array.each do |transaction|
       insert_account_transaction(
         DateTime.strptime("#{transaction[:date]} 00:00", '%Y-%m-%d %H:%M'),
-        account.account_hash[:buckets, buckets_id],
+        account_id,
         transaction[:amount],
         transaction[:description],
         transaction[:md5]
@@ -258,6 +264,7 @@ class Budget
     af = Afterbanks::Fetcher.new(ENV['AFTERBANKS_API_KEY'])
     now = DateTime.now
     insert_account_transactions_array(
+      account.buckets_id,
       af.fetch_transactions_array(
         [account.afterbanks_id],
         account.last_updated,
@@ -266,6 +273,14 @@ class Budget
     )
     account.touch(now)
     af_repo.overwrite_account(account)
+  end
+
+  # @param [String] accounts_json_path
+  def sync_all_accounts(accounts_json_path)
+    af_repo = Afterbanks::SyncedAccountRepository.new(accounts_json_path)
+    af_repo.all_accounts_array(true).each do |account|
+      update_afterbanks_account(af_repo, account[:buckets_id])
+    end
   end
 
   private

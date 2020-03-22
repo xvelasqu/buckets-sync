@@ -19,5 +19,5 @@ Dir[File.join('.', 'lib/**/*.rb')]
 # Init
 Dotenv.load
 
-budget = Budget.new('db/test.buckets')
-budget.sync_all_accounts('db/accounts.json')
+budget = Budget.new(File.dirname(__FILE__) + '/db/test.buckets')
+budget.sync_all_accounts(File.dirname(__FILE__) + '/db/accounts.json')

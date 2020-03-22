@@ -47,21 +47,6 @@ module Afterbanks
       end
     end
 
-    # @return [String] pretty json with all products
-    def dummy_fetch_accounts_json
-      response = File.read('test_response_accounts.json') # Dummy test
-      banks_array = JSON.parse(response, symbolize_names: true) # Dummy test
-      products = []
-      banks_array.each do |bank|
-        next unless bank[:products].is_a?(Array)
-
-        bank[:products].each do |product|
-          products.push(product)
-        end
-      end
-      JSON.pretty_generate(products)
-    end
-
     # @param [Array<String>] selected_accounts
     # @param [DateTime] from_datetime
     # @param [DateTime] to_datetime
@@ -84,6 +69,25 @@ module Afterbanks
       JSON.pretty_generate(
         fetch_transactions_array(selected_accounts, from_datetime, to_datetime)
       )
+    end
+
+    ######
+    ## Debug
+    ######
+
+    # @return [String] pretty json with all products
+    def dummy_fetch_accounts_json
+      response = File.read('test_response_accounts.json') # Dummy test
+      banks_array = JSON.parse(response, symbolize_names: true) # Dummy test
+      products = []
+      banks_array.each do |bank|
+        next unless bank[:products].is_a?(Array)
+
+        bank[:products].each do |product|
+          products.push(product)
+        end
+      end
+      JSON.pretty_generate(products)
     end
 
     # @param [Array<Hash>]

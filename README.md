@@ -1,5 +1,5 @@
 # buckets-sync
-Tool for automatic accounts & transactions sync with the [Buckets](https://www.budgetwithbuckets.com/) budgeting software. Requires Ruby `>=2.6` and Bundler `>=2.1`. 
+Tool for automatic transactions sync with the [Buckets](https://www.budgetwithbuckets.com/) budgeting software. Requires Ruby `>=2.6` and Bundler `>=2.1`. 
 
 Works with:
 - [Afterbanks](https://www.afterbanks.com)

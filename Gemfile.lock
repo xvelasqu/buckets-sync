@@ -4,13 +4,17 @@ GEM
 GEM
   remote: https://rubygems.org/
   specs:
+    bigdecimal (4.1.2)
+    csv (3.3.5)
     dotenv (2.7.5)
-    httparty (0.21.0)
+    httparty (0.24.0)
+      csv
       mini_mime (>= 1.0.0)
       multi_xml (>= 0.5.2)
     json (2.3.0)
-    mini_mime (1.1.2)
-    multi_xml (0.6.0)
+    mini_mime (1.1.5)
+    multi_xml (0.9.1)
+      bigdecimal (>= 3.1, < 5)
     sqlite3 (1.4.2)
 
 PLATFORMS
